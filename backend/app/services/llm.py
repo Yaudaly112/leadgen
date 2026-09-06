@@ -4,7 +4,15 @@ from openai import AsyncOpenAI
 
 from app.config import settings
 
-client = AsyncOpenAI(api_key=settings.openai_api_key)
+# Lazy client — doesn't crash at import time if OPENAI_API_KEY is not yet set
+client = None
+
+
+def get_client() -> AsyncOpenAI:
+    global client
+    if client is None:
+        client = AsyncOpenAI(api_key=settings.openai_api_key)
+    return client
 
 
 # ── Business Description Generator ──────────────────────────────────────────────
@@ -39,7 +47,7 @@ async def generate_business_description(business: dict) -> str:
         services=", ".join(business.get("services", [])[:5]),
     )
 
-    response = await client.chat.completions.create(
+    response = await get_client().chat.completions.create(
         model="gpt-4o-mini",
         messages=[{"role": "user", "content": prompt}],
         max_tokens=150,
@@ -84,7 +92,7 @@ async def generate_cold_email(business: dict, demo_url: str) -> dict:
         demo_url=demo_url,
     )
 
-    response = await client.chat.completions.create(
+    response = await get_client().chat.completions.create(
         model="gpt-4o",
         messages=[{"role": "user", "content": prompt}],
         max_tokens=400,
@@ -129,7 +137,7 @@ async def generate_followup_email(
         followup_number=followup_number,
     )
 
-    response = await client.chat.completions.create(
+    response = await get_client().chat.completions.create(
         model="gpt-4o-mini",
         messages=[{"role": "user", "content": prompt}],
         max_tokens=250,
@@ -172,7 +180,7 @@ async def generate_call_script(business: dict, demo_url: str) -> str:
         demo_url=demo_url,
     )
 
-    response = await client.chat.completions.create(
+    response = await get_client().chat.completions.create(
         model="gpt-4o-mini",
         messages=[{"role": "user", "content": prompt}],
         max_tokens=300,
@@ -222,7 +230,7 @@ async def generate_demo_content(business: dict) -> dict:
         services=", ".join(business.get("services", [])[:6]),
     )
 
-    response = await client.chat.completions.create(
+    response = await get_client().chat.completions.create(
         model="gpt-4o",
         messages=[{"role": "user", "content": prompt}],
         max_tokens=600,
