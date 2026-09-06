@@ -10,7 +10,6 @@ from sendgrid.helpers.mail import (
     Header,
     Mail,
     To,
-    UnsubscribeGroup,
 )
 
 from app.config import settings
