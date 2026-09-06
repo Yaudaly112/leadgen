@@ -324,10 +324,29 @@ _db_url = f"{parsed.scheme}://{parsed.netloc}{parsed.path}?ssl=require"
 
 print(f"[DB] Engine URL starts with: {_db_url[:60]}")
 
-engine = create_async_engine(_db_url, echo=False, pool_pre_ping=True)
+# Neon pooler authenticator needs explicit search_path for DDL
+engine = create_async_engine(
+    _db_url,
+    echo=False,
+    pool_pre_ping=True,
+    connect_args={"server_settings": {"search_path": "public"}},
+)
 async_session = async_sessionmaker(engine, class_=None, expire_on_commit=False)
 
 
 async def init_db():
+    from sqlalchemy import text
     async with engine.begin() as conn:
+        # Grant permissions for Neon pooler authenticator role
+        for stmt in [
+            "GRANT ALL ON SCHEMA public TO authenticator",
+            "GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO authenticator",
+            "GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO authenticator",
+            "ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO authenticator",
+            "ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO authenticator",
+        ]:
+            try:
+                await conn.execute(text(stmt))
+            except Exception:
+                pass  # role may already have these permissions
         await conn.run_sync(Base.metadata.create_all)
