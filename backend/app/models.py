@@ -311,21 +311,18 @@ class PipelineRun(Base):
 
 # Database engine and session
 import os
-import re
+from urllib.parse import urlparse
 
 _db_url = os.environ.get(
     "DATABASE_URL",
     "postgresql+asyncpg://user:password@localhost:5432/leadgen",
 )
 
-# Neon's sslmode=require is not understood by asyncpg. Strip it with regex.
-_db_url = re.sub(r'[?&]sslmode=[^&]*', '', _db_url)
-_db_url = re.sub(r'\?$', '', _db_url)  # remove trailing ?
-_db_url = _db_url.replace('?&', '?')  # clean up leading ?&
+# Strip ALL query params from Neon's URL — asyncpg doesn't understand sslmode=
+parsed = urlparse(_db_url)
+_db_url = f"{parsed.scheme}://{parsed.netloc}{parsed.path}?ssl=require"
 
-# asyncpg needs ssl=require in the URL (not sslmode=require)
-if 'ssl=require' not in _db_url and 'ssl=' not in _db_url:
-    _db_url += ('&' if '?' in _db_url else '?') + 'ssl=require'
+print(f"[DB] Engine URL starts with: {_db_url[:60]}")
 
 engine = create_async_engine(_db_url, echo=False, pool_pre_ping=True)
 async_session = async_sessionmaker(engine, class_=None, expire_on_commit=False)

@@ -1,5 +1,8 @@
-# Backend Dockerfile - Production build
 FROM python:3.12-slim
+
+# Cache bust: force rebuild
+ARG BUILD_ID=1
+ENV BUILD_ID=${BUILD_ID}
 
 WORKDIR /app
 
@@ -14,7 +17,7 @@ RUN apt-get update -qq && apt-get install -y --no-install-recommends \
 COPY backend/requirements.txt ./requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy application code
+# Copy application code (no cache)
 COPY backend/ /app/
 
 # Create non-root user
