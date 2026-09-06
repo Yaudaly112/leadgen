@@ -1,0 +1,63 @@
+# ─────────────────────────────────────────────────────────────
+# Production Docker Compose — LeadGen AI
+#
+# Uses external Neon PostgreSQL + Redis Cloud.
+# No local database or Redis needed.
+#
+# Usage:
+#   docker compose -f docker-compose.prod.yml up -d --build
+# ─────────────────────────────────────────────────────────────
+
+services:
+  # ── FastAPI Backend ────────────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file: ./backend/.env
+    environment:
+      - FRONTEND_URL=http://frontend:3000
+    ports:
+      - "8000:8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import httpx; httpx.get('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+  # ── Celery Worker ──────────────────────────────────────────
+  worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    command: celery -A app.tasks worker --loglevel=info --concurrency=2 --max-tasks-per-child=100
+    restart: unless-stopped
+    env_file: ./backend/.env
+
+  # ── Celery Beat (Scheduled Tasks) ─────────────────────────
+  beat:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    command: celery -A app.tasks beat --loglevel=info
+    restart: unless-stopped
+    env_file: ./backend/.env
+
+  # ── Next.js Frontend ──────────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file: ./backend/.env
+    environment:
+      - BACKEND_URL=http://backend:8000
+      - NEXT_PUBLIC_API_URL=http://backend:8000
+    ports:
+      - "3000:3000"
+
+volumes:
+  caddy_data:
+  caddy_config:

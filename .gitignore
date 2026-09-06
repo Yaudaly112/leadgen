@@ -1,0 +1,44 @@
+# Dependencies
+node_modules/
+venv/
+.venv/
+
+# Environment
+.env
+.env.local
+.env.production
+
+# Build
+.next/
+dist/
+build/
+__pycache__/
+*.pyc
+*.pyo
+
+# Generated
+backend/generated_sites/
+
+# Docker
+*.log
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Secrets
+*.pem
+*.key
+
+# Freebuff workspace
+.freebuff/
+
+# Submodules/deep-notes
+deep-notes/
+
