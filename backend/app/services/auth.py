@@ -232,19 +232,22 @@ async def ensure_admin_user():
 
     Called on first startup. Default credentials: admin / admin123
     """
-    async with async_session() as session:
-        result = await session.execute(select(User).limit(1))
-        if result.scalar_one_or_none():
-            return  # Users already exist
+    try:
+        async with async_session() as session:
+            result = await session.execute(select(User).limit(1))
+            if result.scalar_one_or_none():
+                return  # Users already exist
 
-        admin = User(
-            username="admin",
-            email="admin@leadgen.local",
-            hashed_password=hash_password("admin123"),
-            full_name="Admin",
-            role="admin",
-        )
-        session.add(admin)
-        await session.commit()
-        print("✅ Default admin user created: admin / admin123")
-        print("⚠️  Change this password immediately in production!")
+            admin = User(
+                username="admin",
+                email="admin@leadgen.local",
+                hashed_password=hash_password("admin123"),
+                full_name="Admin",
+                role="admin",
+            )
+            session.add(admin)
+            await session.commit()
+            print("✅ Default admin user created: admin / admin123")
+            print("⚠️  Change this password immediately in production!")
+    except Exception as e:
+        print(f"⚠️  Could not create admin user: {e}")
