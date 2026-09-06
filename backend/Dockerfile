@@ -10,7 +10,7 @@ RUN apt-get update -qq && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Python dependencies
-COPY requirements.txt .
+COPY backend/requirements.txt ./requirements.txt
 RUN pip install --no-cache-dir --prefix=/install -r requirements.txt
 
 # ── Runtime stage ────────────────────────────────────────────
@@ -18,7 +18,7 @@ FROM python:3.12-slim AS runtime
 
 WORKDIR /app
 
-# Install runtime deps for psycopg/asyncpg
+# Install runtime deps for asyncpg
 RUN apt-get update -qq && apt-get install -y --no-install-recommends \
     libpq5 \
     && rm -rf /var/lib/apt/lists/*
@@ -27,7 +27,7 @@ RUN apt-get update -qq && apt-get install -y --no-install-recommends \
 COPY --from=builder /install /usr/local
 
 # Copy application code
-COPY . .
+COPY backend/ ./
 
 # Create non-root user
 RUN groupadd -r leadgen && useradd -r -g leadgen leadgen
