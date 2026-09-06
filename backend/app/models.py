@@ -311,39 +311,18 @@ class PipelineRun(Base):
 
 # Database engine and session
 import os
-import ssl
 
 _db_url = os.environ.get(
     "DATABASE_URL",
     "postgresql+asyncpg://user:password@localhost:5432/leadgen",
 )
 
-# asyncpg doesn't understand sslmode= from Neon's URL — translate it
-connect_args = {}
-if "sslmode=" in _db_url:
-    # Extract sslmode value
-    from urllib.parse import urlparse, parse_qs
-    parsed = urlparse(_db_url)
-    params = parse_qs(parsed.query)
-    sslmode = params.get("sslmode", ["require"])[0]
+# asyncpg uses ssl= not sslmode=. Replace sslmode=X with ssl=X in the URL
+_db_url = _db_url.replace("sslmode=require", "ssl=require")
+_db_url = _db_url.replace("sslmode=prefer", "ssl=require")
+_db_url = _db_url.replace("sslmode=disable", "ssl=disable")
 
-    # Strip sslmode from URL (asyncpg doesn't understand it)
-    clean_query = {k: v for k, v in params.items() if k != "sslmode"}
-    from urllib.parse import urlencode
-    clean_qs = urlencode(clean_query, doseq=True)
-    clean_url = f"{parsed.scheme}://{parsed.netloc}{parsed.path}"
-    if clean_qs:
-        clean_url += f"?{clean_qs}"
-    _db_url = clean_url
-
-    # Map sslmode to asyncpg ssl config
-    if sslmode in ("require", "verify-ca", "verify-full"):
-        ssl_context = ssl.create_default_context()
-        ssl_context.check_hostname = False
-        ssl_context.verify_mode = ssl.CERT_NONE
-        connect_args["ssl"] = ssl_context
-
-engine = create_async_engine(_db_url, echo=False, pool_pre_ping=True, connect_args=connect_args if connect_args else None)
+engine = create_async_engine(_db_url, echo=False, pool_pre_ping=True)
 async_session = async_sessionmaker(engine, class_=None, expire_on_commit=False)
 
 
