@@ -325,7 +325,7 @@ _db_url = f"{parsed.scheme}://{parsed.netloc}{parsed.path}?ssl=require"
 print(f"[DB] Engine URL starts with: {_db_url[:60]}")
 
 engine = create_async_engine(_db_url, echo=False, pool_pre_ping=True)
-async_session = async_sessionmaker(engine, class_=None, expire_on_commit=False)
+async_session = async_sessionmaker(engine, expire_on_commit=False)
 
 
 async def init_db():
