@@ -1,47 +1,41 @@
 # Core
-fastapi==0.115.0
-uvicorn[standard]==0.30.0
-uvloop==0.20.0
-httptools==0.6.1
+fastapi>=0.115.0
+uvicorn[standard]>=0.30.0
 
 # Database
-sqlalchemy[asyncio]==2.0.35
-asyncpg==0.29.0
-alembic==1.13.0
+sqlalchemy[asyncio]>=2.0.35
+asyncpg>=0.29.0
+alembic>=1.13.0
 
 # Validation
-pydantic==2.9.0
-pydantic-settings==2.5.0
+pydantic>=2.9.0
+pydantic-settings>=2.5.0
 
 # HTTP
-httpx==0.27.0
+httpx>=0.27.0
 
 # AI
-openai==1.50.0
+openai>=1.50.0
 
 # Email
-sendgrid==6.11.0
+sendgrid>=6.11.0
 
 # Phone
-twilio==9.0.0
+twilio>=9.0.0
 
 # Templates
-jinja2==3.1.4
+jinja2>=3.1.4
 
 # Task queue
-celery[redis]==5.4.0
-redis==5.1.0
+celery[redis]>=5.4.0
+redis>=5.1.0
 
 # Environment
-python-dotenv==1.0.1
+python-dotenv>=1.0.1
 
 # Multipart
-python-multipart==0.0.9
+python-multipart>=0.0.9
 
 # Security
-python-jose[cryptography]==3.3.0
-passlib[bcrypt]==1.7.4
-
-# Monitoring
-prometheus-fastapi-instrumentator==7.0.0
-sentry-sdk[fastapi]==2.14.0
+python-jose[cryptography]>=3.3.0
+passlib[bcrypt]>=1.7.4
