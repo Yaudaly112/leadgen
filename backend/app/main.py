@@ -3,7 +3,7 @@
 from datetime import datetime
 from typing import Optional
 
-from fastapi import FastAPI, HTTPException, Query, status as http_status
+from fastapi import FastAPI, Depends, HTTPException, Query, status as http_status
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from sqlalchemy import select, func
