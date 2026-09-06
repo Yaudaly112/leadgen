@@ -311,18 +311,38 @@ class PipelineRun(Base):
 
 # Database engine and session
 import os
+import ssl as _ssl
+from urllib.parse import urlparse, parse_qs, urlencode
 
 _db_url = os.environ.get(
     "DATABASE_URL",
     "postgresql+asyncpg://user:password@localhost:5432/leadgen",
 )
 
-# asyncpg uses ssl= not sslmode=. Replace sslmode=X with ssl=X in the URL
-_db_url = _db_url.replace("sslmode=require", "ssl=require")
-_db_url = _db_url.replace("sslmode=prefer", "ssl=require")
-_db_url = _db_url.replace("sslmode=disable", "ssl=disable")
+# Neon provides sslmode=require but asyncpg doesn't understand it.
+# Strip ALL query params from the URL and pass SSL via connect_args.
+parsed = urlparse(_db_url)
+params = parse_qs(parsed.query)
 
-engine = create_async_engine(_db_url, echo=False, pool_pre_ping=True)
+# Rebuild URL without any query params
+_db_url = f"{parsed.scheme}://{parsed.netloc}{parsed.path}"
+
+# If there were query params (besides sslmode), preserve them
+other_params = {k: v for k, v in params.items() if k.lower() != "sslmode"}
+if other_params:
+    _db_url += "?" + urlencode(other_params, doseq=True)
+
+# Configure SSL for Neon (sslmode=require → ssl context)
+connect_args = {}
+if any(k.lower() == "sslmode" for k in params):
+    ssl_mode = params["sslmode"][0] if "sslmode" in params else params[[k for k in params if k.lower() == "sslmode"][0]][0]
+    if ssl_mode in ("require", "verify-ca", "verify-full"):
+        ctx = _ssl.create_default_context()
+        ctx.check_hostname = False
+        ctx.verify_mode = _ssl.CERT_NONE
+        connect_args["ssl"] = ctx
+
+engine = create_async_engine(_db_url, echo=False, pool_pre_ping=True, connect_args=connect_args)
 async_session = async_sessionmaker(engine, class_=None, expire_on_commit=False)
 
 
