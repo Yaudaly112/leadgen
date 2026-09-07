@@ -1096,7 +1096,8 @@ async def get_campaign_stats(campaign_id: int):
 
         logs = await session.execute(
             select(OutreachLog)
-            .join(Lead)
+            .select_from(OutreachLog)
+            .join(Lead, OutreachLog.lead_id == Lead.id)
             .where(Lead.campaign_id == campaign_id)
         )
         log_list = logs.scalars().all()
