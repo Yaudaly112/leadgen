@@ -150,14 +150,18 @@ async def _process_single_event(session, event: dict):
 
     if not outreach_log:
         # Also try matching by email on recent logs
-        result = await session.execute(
-            select(OutreachLog)
-            .join(Lead, OutreachLog.lead_id == Lead.id)
-            .where(Lead.email == email)
-            .order_by(OutreachLog.created_at.desc())
-            .limit(1)
+        lead_result = await session.execute(
+            select(Lead.id).where(Lead.email == email)
         )
-        outreach_log = result.scalar_one_or_none()
+        lead_ids = [r[0] for r in lead_result.all()]
+        if lead_ids:
+            result = await session.execute(
+                select(OutreachLog)
+                .where(OutreachLog.lead_id.in_(lead_ids))
+                .order_by(OutreachLog.created_at.desc())
+                .limit(1)
+            )
+            outreach_log = result.scalar_one_or_none()
 
     if not outreach_log:
         return  # Can't find a matching log — event is stored but not linked
