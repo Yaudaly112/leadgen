@@ -1,17 +1,16 @@
 """Celery tasks for background processing."""
 
 import asyncio
+import nest_asyncio
 from celery import Celery
 from app.config import settings
+
+nest_asyncio.apply()
 
 
 def run_async(coro):
     """Run an async coroutine from sync Celery tasks."""
-    new_loop = asyncio.new_event_loop()
-    try:
-        return new_loop.run_until_complete(coro)
-    finally:
-        new_loop.close()
+    return asyncio.run(coro)
 
 
 celery_app = Celery("leadgen", broker=settings.redis_url)
