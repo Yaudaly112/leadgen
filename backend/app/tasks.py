@@ -6,23 +6,12 @@ from app.config import settings
 
 
 def run_async(coro):
-    """Run an async coroutine from sync Celery tasks, handling nested event loops."""
+    """Run an async coroutine from sync Celery tasks."""
+    new_loop = asyncio.new_event_loop()
     try:
-        loop = asyncio.get_running_loop()
-    except RuntimeError:
-        loop = None
-
-    if loop and loop.is_running():
-        # Already inside an event loop — create a new one in a thread
-        import concurrent.futures
-        with concurrent.futures.ThreadPoolExecutor() as pool:
-            new_loop = asyncio.new_event_loop()
-            try:
-                return new_loop.run_until_complete(coro)
-            finally:
-                new_loop.close()
-    else:
-        return asyncio.run(coro)
+        return new_loop.run_until_complete(coro)
+    finally:
+        new_loop.close()
 
 
 celery_app = Celery("leadgen", broker=settings.redis_url)
