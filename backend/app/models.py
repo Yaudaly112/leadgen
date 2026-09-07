@@ -78,6 +78,7 @@ class Lead(Base):
     __tablename__ = "leads"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    campaign_id: Mapped[int | None] = mapped_column(Integer, index=True)  # FK to campaigns
     google_place_id: Mapped[str | None] = mapped_column(String, unique=True, index=True)
 
     # Business info
@@ -331,3 +332,9 @@ async_session = async_sessionmaker(engine, expire_on_commit=False)
 async def init_db():
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+        # Add missing columns if they don't exist (safe migration)
+        await conn.execute(
+            __import__('sqlalchemy').text(
+                'ALTER TABLE leads ADD COLUMN IF NOT EXISTS campaign_id INTEGER'
+            )
+        )
