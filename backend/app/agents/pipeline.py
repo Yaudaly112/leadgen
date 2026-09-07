@@ -595,7 +595,8 @@ class AgentPipeline:
                     ) or 0
                     emails_queued = await session.scalar(
                         select(func.count(OutreachLog.id))
-                        .join(Lead)
+                        .select_from(OutreachLog)
+                        .join(Lead, OutreachLog.lead_id == Lead.id)
                         .where(
                             Lead.campaign_id == campaign.id,
                             OutreachLog.status == OutreachStatus.PENDING,
