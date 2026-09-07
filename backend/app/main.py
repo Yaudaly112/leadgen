@@ -1094,13 +1094,13 @@ async def get_campaign_stats(campaign_id: int):
         )
         lead_list = leads.scalars().all()
 
-        logs = await session.execute(
-            select(OutreachLog)
-            .select_from(OutreachLog)
-            .join(Lead, OutreachLog.lead_id == Lead.id)
-            .where(Lead.campaign_id == campaign_id)
-        )
-        log_list = logs.scalars().all()
+        lead_ids = [l.id for l in lead_list]
+        log_list = []
+        if lead_ids:
+            logs = await session.execute(
+                select(OutreachLog).where(OutreachLog.lead_id.in_(lead_ids))
+            )
+            log_list = logs.scalars().all()
 
         return {
             "campaign": campaign,

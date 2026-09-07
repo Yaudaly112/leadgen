@@ -593,15 +593,19 @@ class AgentPipeline:
                     total_leads = await session.scalar(
                         select(func.count(Lead.id)).where(Lead.campaign_id == campaign.id)
                     ) or 0
-                    emails_queued = await session.scalar(
-                        select(func.count(OutreachLog.id))
-                        .select_from(OutreachLog)
-                        .join(Lead, OutreachLog.lead_id == Lead.id)
-                        .where(
-                            Lead.campaign_id == campaign.id,
-                            OutreachLog.status == OutreachStatus.PENDING,
-                        )
-                    ) or 0
+                    # Get lead IDs for this campaign
+                    lead_ids_q = await session.execute(
+                        select(Lead.id).where(Lead.campaign_id == campaign.id)
+                    )
+                    lead_ids = [r[0] for r in lead_ids_q.all()]
+                    emails_queued = 0
+                    if lead_ids:
+                        emails_queued = await session.scalar(
+                            select(func.count(OutreachLog.id)).where(
+                                OutreachLog.lead_id.in_(lead_ids),
+                                OutreachLog.status == OutreachStatus.PENDING,
+                            )
+                        ) or 0
                     campaign.total_leads = total_leads
                     campaign.emails_sent = emails_queued
                     campaign.status = "active"
