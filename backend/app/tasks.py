@@ -1,7 +1,29 @@
 """Celery tasks for background processing."""
 
+import asyncio
 from celery import Celery
 from app.config import settings
+
+
+def run_async(coro):
+    """Run an async coroutine from sync Celery tasks, handling nested event loops."""
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        loop = None
+
+    if loop and loop.is_running():
+        # Already inside an event loop — create a new one in a thread
+        import concurrent.futures
+        with concurrent.futures.ThreadPoolExecutor() as pool:
+            new_loop = asyncio.new_event_loop()
+            try:
+                return new_loop.run_until_complete(coro)
+            finally:
+                new_loop.close()
+    else:
+        return asyncio.run(coro)
+
 
 celery_app = Celery("leadgen", broker=settings.redis_url)
 
@@ -26,49 +48,45 @@ def discover_leads_task(self, campaign_id: int, category: str, city: str, state:
     async def run():
         return await pipeline.discover_leads(campaign_id, category, city, state)
 
-    return asyncio.run(run())
+    return run_async(run())
 
 
 @celery_app.task(bind=True, max_retries=3)
 def enrich_lead_task(self, lead_id: int):
     """Background task for enriching a single lead."""
-    import asyncio
     from app.agents.pipeline import pipeline
 
     async def run():
         return await pipeline.enrich_lead(lead_id)
 
-    return asyncio.run(run())
+    return run_async(run())
 
 
 @celery_app.task(bind=True, max_retries=3)
 def generate_demo_task(self, lead_id: int):
     """Background task for generating a demo site."""
-    import asyncio
     from app.agents.pipeline import pipeline
 
     async def run():
         return await pipeline.generate_demo(lead_id)
 
-    return asyncio.run(run())
+    return run_async(run())
 
 
 @celery_app.task(bind=True, max_retries=3)
 def send_cold_email_task(self, lead_id: int):
     """Background task for sending cold email."""
-    import asyncio
     from app.agents.pipeline import pipeline
 
     async def run():
         return await pipeline.send_cold_email(lead_id)
 
-    return asyncio.run(run())
+    return run_async(run())
 
 
 @celery_app.task
 def batch_enrich_task(campaign_id: int):
     """Batch enrich all discovered leads in a campaign."""
-    import asyncio
     from sqlalchemy import select
     from app.models import Lead, LeadStatus, async_session
 
@@ -87,13 +105,12 @@ def batch_enrich_task(campaign_id: int):
 
         return {"total": len(leads), "tasks_queued": len(leads)}
 
-    return asyncio.run(run())
+    return run_async(run())
 
 
 @celery_app.task
 def batch_generate_demos_task(campaign_id: int):
     """Batch generate demos for all enriched leads."""
-    import asyncio
     from sqlalchemy import select
     from app.models import Lead, LeadStatus, async_session
 
@@ -112,7 +129,7 @@ def batch_generate_demos_task(campaign_id: int):
 
         return {"total": len(leads), "tasks_queued": len(leads)}
 
-    return asyncio.run(run())
+    return run_async(run())
 
 
 # ── Full Pipeline Runner ─────────────────────────────────────────────────────
@@ -123,17 +140,16 @@ def run_full_pipeline_task(self, run_id: int):
 
     This is the main task kicked off by the 'Run Pipeline' button.
     """
-    import asyncio
     from app.agents.pipeline import pipeline
 
     async def run():
         return await pipeline.run_full_pipeline(run_id)
 
     try:
-        return asyncio.run(run())
+        return run_async(run())
     except Exception as exc:
         # Update run as failed if the task crashes entirely
-        asyncio.run(_mark_run_failed(run_id, str(exc)))
+        run_async(_mark_run_failed(run_id, str(exc)))
         raise
 
 
