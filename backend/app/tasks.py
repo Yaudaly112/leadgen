@@ -165,3 +165,4 @@ async def _mark_run_failed(run_id: int, error: str):
             run.completed_at = datetime.utcnow()
             run.error_log = json.dumps([{"error": error}])
             await session.commit()
+# Mon Sep  7 02:28:11 SAST 2026
