@@ -136,6 +136,9 @@ def run_full_pipeline_task(self, run_id: int):
     try:
         return run_async(run())
     except Exception as exc:
+        import traceback
+        print(f"[PIPELINE ERROR] {type(exc).__name__}: {exc}")
+        traceback.print_exc()
         # Update run as failed if the task crashes entirely
         run_async(_mark_run_failed(run_id, str(exc)))
         raise

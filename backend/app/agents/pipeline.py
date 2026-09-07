@@ -1,6 +1,7 @@
 """Agent pipeline orchestrates the full lead generation workflow."""
 
 import json
+import traceback
 from datetime import datetime
 from typing import Optional
 
@@ -443,8 +444,10 @@ class AgentPipeline:
                         discovery_new=len(leads),
                         discovery_completed_at=datetime.utcnow(),
                     )
-                except Exception as e:
-                    errors.append({"step": "discovery", "error": str(e)})
+        except Exception as e:
+            print(f"[PIPELINE ERROR] {type(e).__name__}: {e}")
+            traceback.print_exc()
+            errors.append({"step": "discovery", "error": str(e)})
                     await self._update_run(
                         run_id,
                         discovery_status="failed",
